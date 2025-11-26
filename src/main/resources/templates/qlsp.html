@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Sản Phẩm - XYZ Store</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body { background-color: #f8f9fa; }
+        .table img {
+            width: 50px; height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .modal-header { background-color: #0d6efd; color: white; }
+        #preview-img {
+            width: 100px; height: 100px;
+            object-fit: cover;
+            border: 1px dashed #ccc;
+            margin-top: 10px;
+            display: none; /* Ẩn khi chưa có ảnh */
+        }
+        .loading {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.7);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container mt-5">
+        <h2 class="text-primary mb-4"><i class="fas fa-boxes"></i> Quản Lý Sản Phẩm</h2>
+
+        <div class="d-flex justify-content-between mb-3">
+            <button class="btn btn-success" onclick="openModal('ADD')">
+                <i class="fas fa-plus"></i> Thêm Sản Phẩm
+            </button>
+            <div class="input-group w-25">
+                <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm...">
+                <button class="btn btn-outline-secondary" onclick="fetchProducts()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Hình ảnh</th>
+                            <th>Mã SKU</th>
+                            <th>Tên Sản Phẩm</th>
+                            <th>Danh Mục</th>
+                            <th>Giá Bán</th>
+                            <th>Tồn Kho</th>
+                            <th style="width: 150px;">Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center mt-3 align-items-center gap-2">
+            <button class="btn btn-sm btn-secondary" onclick="changePage(-1)" id="btnPrev">Trước</button>
+            <span id="pageInfo" class="fw-bold">Trang 1</span>
+            <button class="btn btn-sm btn-secondary" onclick="changePage(1)" id="btnNext">Sau</button>
+        </div>
+    </div>
+
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Thêm Sản Phẩm Mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productForm">
+                        <input type="hidden" id="productId"> <div class="mb-3">
+                            <label>Mã SKU <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="sku" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Tên Sản Phẩm <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="productName" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label>Giá Bán</label>
+                                <input type="number" class="form-control" id="price" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label>Tồn Kho</label>
+                                <input type="number" class="form-control" id="stockQuantity" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label>Danh Mục</label>
+                            <select class="form-select" id="categoryId">
+                                <option value="1">Cà phê</option>
+                                <option value="2">Trà sữa</option>
+                                <option value="3">Đồ ăn vặt</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Hình Ảnh</label>
+                            <input type="file" class="form-control" id="imageInput" accept="image/*" onchange="previewImageFile()">
+                            <img id="preview-img" src="" alt="Preview">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProduct()">Lưu Dữ Liệu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loadingSpinner">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        // CẤU HÌNH AXIOS
+        const API_BASE = 'http://localhost:8080';
+        axios.defaults.withCredentials = true; // QUAN TRỌNG: Để gửi Cookie user_session
+
+        let currentPage = 0;
+        let totalPages = 0;
+        const modalElement = new bootstrap.Modal(document.getElementById('productModal'));
+
+        // === 1. LOAD DANH SÁCH SẢN PHẨM ===
+        function fetchProducts() {
+            showLoading(true);
+            const search = document.getElementById('searchInput').value;
+            
+            axios.get(`${API_BASE}/product/list`, {
+                params: {
+                    page: currentPage,
+                    size: 5,
+                    search: search
+                }
+            })
+            .then(response => {
+                const data = response.data.content;
+                totalPages = response.data.totalPages;
+                renderTable(data);
+                updatePagination();
+            })
+            .catch(error => {
+                console.error(error);
+                if (error.response && error.response.status === 401) {
+                    alert('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!');
+                } else {
+                    alert('Lỗi tải dữ liệu!');
+                }
+            })
+            .finally(() => showLoading(false));
+        }
+
+        // === 2. RENDER BẢNG HTML ===
+        function renderTable(products) {
+            const tbody = document.getElementById('productTableBody');
+            tbody.innerHTML = '';
+
+            if (products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">Không có dữ liệu</td></tr>';
+                return;
+            }
+
+            products.forEach(p => {
+                // Logic hiển thị ảnh: Nếu có ảnh thì gọi API load ảnh, không thì hiện placeholder
+                const imgUrl = p.imageUrl 
+                    ? `${API_BASE}/product/images/${p.imageUrl}` 
+                    : 'https://via.placeholder.com/50';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><img src="${imgUrl}" alt="sp"></td>
+                    <td>${p.sku}</td>
+                    <td class="fw-bold text-primary">${p.productName}</td>
+                    <td>${p.category ? p.category.categoryName : 'N/A'}</td>
+                    <td class="text-danger fw-bold">${p.price.toLocaleString()} ₫</td>
+                    <td><span class="badge ${p.stockQuantity < 10 ? 'bg-danger' : 'bg-success'}">${p.stockQuantity}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick='openModal("EDIT", ${JSON.stringify(p)})'>
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.productId})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // === 3. XỬ LÝ MODAL (MỞ FORM) ===
+        function openModal(mode, product = null) {
+            const title = document.getElementById('modalTitle');
+            const imgPreview = document.getElementById('preview-img');
+            
+            // Reset form
+            document.getElementById('productForm').reset();
+            imgPreview.style.display = 'none';
+            imgPreview.src = '';
+
+            if (mode === 'ADD') {
+                title.innerText = "Thêm Sản Phẩm Mới";
+                document.getElementById('productId').value = ''; // ID rỗng
+                document.getElementById('sku').disabled = false; // Cho nhập SKU
+            } else {
+                title.innerText = "Cập Nhật Sản Phẩm";
+                // Đổ dữ liệu cũ vào form
+                document.getElementById('productId').value = product.productId;
+                document.getElementById('sku').value = product.sku;
+                document.getElementById('sku').disabled = true; // Không cho sửa SKU
+                document.getElementById('productName').value = product.productName;
+                document.getElementById('price').value = product.price;
+                document.getElementById('stockQuantity').value = product.stockQuantity;
+                document.getElementById('categoryId').value = product.category?.categoryId || 1;
+
+                // Hiển thị ảnh cũ
+                if (product.imageUrl) {
+                    imgPreview.src = `${API_BASE}/product/images/${product.imageUrl}`;
+                    imgPreview.style.display = 'block';
+                }
+            }
+            modalElement.show();
+        }
+
+        // === 4. XỬ LÝ LƯU (THÊM / SỬA) ===
+        function saveProduct() {
+            const id = document.getElementById('productId').value;
+            const isEdit = !!id; // Có ID là Sửa, không ID là Thêm
+
+            // Tạo FormData (Bắt buộc để gửi File)
+            const formData = new FormData();
+            formData.append('sku', document.getElementById('sku').value);
+            formData.append('productName', document.getElementById('productName').value);
+            formData.append('price', document.getElementById('price').value);
+            formData.append('stockQuantity', document.getElementById('stockQuantity').value);
+            formData.append('categoryId', document.getElementById('categoryId').value);
+
+            // Kiểm tra file ảnh
+            const fileInput = document.getElementById('imageInput');
+            if (fileInput.files.length > 0) {
+                formData.append('image', fileInput.files[0]);
+            }
+
+            showLoading(true);
+            
+            let apiCall;
+            if (isEdit) {
+                apiCall = axios.put(`${API_BASE}/product/update/${id}`, formData);
+            } else {
+                apiCall = axios.post(`${API_BASE}/product/create`, formData);
+            }
+
+            apiCall
+                .then(res => {
+                    alert(isEdit ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
+                    modalElement.hide();
+                    fetchProducts(); // Load lại bảng
+                })
+                .catch(err => {
+                    alert('Lỗi: ' + (err.response?.data || err.message));
+                })
+                .finally(() => showLoading(false));
+        }
+
+        // === 5. XÓA SẢN PHẨM ===
+        function deleteProduct(id) {
+            if (confirm('Bạn có chắc muốn xóa sản phẩm này không?')) {
+                showLoading(true);
+                axios.delete(`${API_BASE}/product/delete/${id}`)
+                    .then(() => {
+                        alert('Đã xóa thành công!');
+                        fetchProducts();
+                    })
+                    .catch(err => alert('Lỗi khi xóa: ' + err.message))
+                    .finally(() => showLoading(false));
+            }
+        }
+
+        // === 6. CÁC HÀM PHỤ TRỢ ===
+        function previewImageFile() {
+            const file = document.getElementById('imageInput').files[0];
+            const preview = document.getElementById('preview-img');
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+                preview.style.display = 'block';
+            }
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 0 && newPage < totalPages) {
+                currentPage = newPage;
+                fetchProducts();
+            }
+        }
+
+        function updatePagination() {
+            document.getElementById('pageInfo').innerText = `Trang ${currentPage + 1} / ${totalPages}`;
+            document.getElementById('btnPrev').disabled = currentPage === 0;
+            document.getElementById('btnNext').disabled = currentPage >= totalPages - 1;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingSpinner').style.display = show ? 'flex' : 'none';
+        }
+
+        // KHỞI CHẠY LẦN ĐẦU
+        document.addEventListener('DOMContentLoaded', fetchProducts);
+
+    </script>
+</body>
+</html>
