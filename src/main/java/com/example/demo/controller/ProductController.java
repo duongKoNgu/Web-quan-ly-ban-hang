@@ -35,6 +35,8 @@ public class ProductController {
             @ModelAttribute ProductRequest productRequest, // Dùng ModelAttribute để nhận File + Data
             @CookieValue(value = "user_session", required = false) String userIdStr) {
 
+        System.out.println("Cookie userIdStr nhận được: " + userIdStr);
+
         try {
             // 1. Check quyền Admin
             if (userIdStr == null || !userService.checkIsAdmin(Integer.valueOf(userIdStr))) {

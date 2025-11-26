@@ -184,7 +184,7 @@ const API_BASE = 'https://web-quan-ly-ban-hang-production.up.railway.app';
             products.forEach(p => {
                 // Logic hiển thị ảnh: Nếu có ảnh thì gọi API load ảnh, không thì hiện placeholder
                 const imgUrl = p.imageUrl 
-                    ? `${API_BASE}/product/images/${p.imageUrl}` 
+                    ? `${API_BASE}/uploads/product/images/${p.imageUrl}` 
                     : 'https://via.placeholder.com/50';
 
                 const tr = document.createElement('tr');

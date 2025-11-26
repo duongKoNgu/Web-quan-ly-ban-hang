@@ -22,8 +22,10 @@ public class UserService {
     // --- 1. Logic Lấy quyền (Đã làm) ---
     public String getUserRole(Integer userId) {
         User user = userRepository.findById(userId).orElse(null);
+        System.out.println(user.getRole());
         // Kiểm tra kỹ từng lớp để tránh NullPointerException
         if (user != null && user.getRole() != null) {
+
             return user.getRole().getRoleName();
         }
         return ""; // Trả về chuỗi rỗng thay vì null để tránh lỗi ở Controller
