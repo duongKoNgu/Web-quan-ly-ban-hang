@@ -16,6 +16,11 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    public SecurityConfig() {
+        System.out.println("==========================================");
+        System.out.println("DA TIM THAY FILE SECURITY CONFIG !!!");
+        System.out.println("==========================================");
+    }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
