@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,7 +23,7 @@
             background: white;
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 400px;
         }
@@ -74,13 +75,18 @@
         }
 
         .loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
             display: none;
-            justify-content: center; align-items: center;
+            justify-content: center;
+            align-items: center;
             z-index: 9999;
         }
-        
+
         .error-message {
             color: #ff4d4f;
             font-size: 14px;
@@ -90,6 +96,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="loading-overlay" id="loading">
@@ -113,7 +120,7 @@
                     <input type="text" id="username" class="form-control" placeholder="admin" required>
                 </div>
             </div>
-            
+
             <div class="mb-4">
                 <label class="form-label fw-bold">Mật khẩu</label>
                 <div class="input-group">
@@ -137,12 +144,13 @@
     </div>
 
     <script>
-        const API_BASE = 'http://web-quan-ly-ban-hang.railway.internal';
+        // Copy y chang dòng này
+        const API_BASE = 'https://web-quan-ly-ban-hang-production.up.railway.app';
         axios.defaults.withCredentials = true; // QUAN TRỌNG: Để nhận Cookie từ Server
 
         async function handleLogin(e) {
             e.preventDefault(); // Chặn reload trang
-            
+
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorMsg = document.getElementById('errorMsg');
@@ -162,17 +170,17 @@
                 // Nếu thành công (Status 200)
                 if (res.status === 200) {
                     const user = res.data;
-                    
+
                     // Lưu thông tin hiển thị vào LocalStorage (để hiện tên ở trang sau)
                     localStorage.setItem('currentUser', JSON.stringify(user));
 
                     // Chuyển hướng dựa trên quyền (Ví dụ logic)
                     // Nếu là Admin -> Vào trang quản lý sản phẩm
                     // Nếu là Staff -> Vào trang POS bán hàng
-                    
+
                     // Ở đây mình chuyển tạm vào trang POS (file pos.html mà bạn tạo lúc nãy)
                     // Hãy đổi tên file pos.html thành tên file thực tế của bạn
-                    window.location.href = 'home.html'; 
+                    window.location.href = 'home.html';
                 }
 
             } catch (error) {
@@ -189,4 +197,5 @@
         }
     </script>
 </body>
+
 </html>
