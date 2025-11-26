@@ -16,39 +16,44 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    public SecurityConfig() {
-        System.out.println("==========================================");
-        System.out.println("DA TIM THAY FILE SECURITY CONFIG !!!");
-        System.out.println("==========================================");
-    }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Tắt CSRF
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS
+                // 1. Tắt CSRF (Vì ta dùng API stateless, không dùng session form HTML)
+                .csrf(csrf -> csrf.disable())
+
+                // 2. Kích hoạt CORS theo cấu hình bên dưới
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // 3. Phân quyền truy cập
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/**").permitAll() // Cho phép tất cả truy cập (để demo cho dễ)
+                                // Cho phép truy cập tự do vào các API Login, Register, Product list...
+                                // (Trong giai đoạn dev, ta có thể mở hết để test cho dễ)
+                                .requestMatchers("/**").permitAll()
+
+                        // Hoặc nếu muốn chặt chẽ hơn:
+                        // .requestMatchers("/user/login", "/product/list", "/product/images/**").permitAll()
+                        // .anyRequest().authenticated()
                 );
 
         return http.build();
     }
 
+    // Cấu hình CORS chi tiết
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // --- SỬA ĐỔI QUAN TRỌNG Ở ĐÂY ---
-        // Thay vì liệt kê cứng localhost, ta dùng "*" để cho phép TẤT CẢ các trang web
-        // Dùng setAllowedOriginPatterns thay vì setAllowedOrigins để chạy được với allowCredentials(true)
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // Cho phép Frontend chạy ở port 5500 (Live Server)
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5500", "http://127.0.0.1:5500"));
 
         // Cho phép các method
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
-        // Cho phép mọi header
+        // Cho phép mọi header (Authorization, Content-Type...)
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
-        // Cho phép gửi Cookie/Auth (quan trọng cho frontend đăng nhập)
+        // QUAN TRỌNG: Cho phép gửi Cookie (vì bạn dùng withCredentials=true bên axios)
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
