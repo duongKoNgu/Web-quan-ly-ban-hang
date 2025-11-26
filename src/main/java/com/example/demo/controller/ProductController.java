@@ -19,7 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @RestController
-
+@CrossOrigin(origins = "http://localhost:5500", allowCredentials = "true")
 @RequestMapping("/product")
 public class ProductController {
 
@@ -36,7 +36,6 @@ public class ProductController {
             @CookieValue(value = "user_session", required = false) String userIdStr) {
 
         System.out.println("Cookie userIdStr nhận được: " + userIdStr);
-
         try {
             // 1. Check quyền Admin
             if (userIdStr == null || !userService.checkIsAdmin(Integer.valueOf(userIdStr))) {

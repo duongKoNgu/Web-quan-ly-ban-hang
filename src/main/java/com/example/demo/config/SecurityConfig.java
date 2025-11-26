@@ -19,41 +19,32 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Tắt CSRF (Vì ta dùng API stateless, không dùng session form HTML)
-                .csrf(csrf -> csrf.disable())
-
-                // 2. Kích hoạt CORS theo cấu hình bên dưới
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // 3. Phân quyền truy cập
+                .csrf(csrf -> csrf.disable()) // Tắt CSRF
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS
                 .authorizeHttpRequests(auth -> auth
-                                // Cho phép truy cập tự do vào các API Login, Register, Product list...
-                                // (Trong giai đoạn dev, ta có thể mở hết để test cho dễ)
-                                .requestMatchers("/**").permitAll()
-
-                        // Hoặc nếu muốn chặt chẽ hơn:
-                        // .requestMatchers("/user/login", "/product/list", "/product/images/**").permitAll()
-                        // .anyRequest().authenticated()
+                        .requestMatchers("/**").permitAll() // Cho phép tất cả API (Demo)
                 );
 
         return http.build();
     }
 
-    // Cấu hình CORS chi tiết
+    // --- CẤU HÌNH CORS CHUẨN ĐỂ NHẬN COOKIE ---
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Cho phép Frontend chạy ở port 5500 (Live Server)
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5500", "http://127.0.0.1:5500"));
+        // 1. Dùng setAllowedOriginPatterns("*") thay vì liệt kê cứng
+        // Cái này nghĩa là: "Mọi trang web đều được phép gọi tôi"
+        // Spring sẽ tự động lấy Origin của người gọi và điền vào Header trả về -> Cookie sẽ đi qua được.
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
 
-        // Cho phép các method
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // 2. Cho phép các method
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
-        // Cho phép mọi header (Authorization, Content-Type...)
+        // 3. Cho phép mọi header (Authorization, Content-Type, X-Requested-With...)
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
-        // QUAN TRỌNG: Cho phép gửi Cookie (vì bạn dùng withCredentials=true bên axios)
+        // 4. QUAN TRỌNG: Cho phép gửi Cookie
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
